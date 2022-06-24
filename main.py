@@ -9,9 +9,11 @@ from datetime import datetime, timedelta
 from modules.download_button import download_button
 from modules.fetch_data import get_open_data_elia_df
 from modules.forecast_univariate import run_forecast_univariate
-from modules.forecast_multivariate import prepare_data_for_mv_fc, run_forecast_multivariate
+from modules.forecast_multivariate import (
+    prepare_data_for_mv_fc,
+    run_forecast_multivariate,
+)
 from modules.helper import check_regressors
-
 
 
 st.image("data/TimeSeriesForecaster.png")
@@ -36,18 +38,16 @@ You can choose between univariate and multivariate forecasting:
 """
 
 forecast_model = st.radio(
-     "Select your forecasting method:",
-     ('Univariate', 'Multivariate'))
+    "Select your forecasting method:", ("Univariate", "Multivariate")
+)
 
 st.markdown(
     """ ### Data Selection 
     Select the data from the Elia grid to forecast."""
-    )
+)
 
- # add a input field that allows you to select ["Total Load","PV production","Wind production"] and stores it in a variable called  "option"
-
-## YOUR CODE HERE ##
-
+options = ["Total Load", "PV production", "Wind production"]
+option = st.selectbox("Select the data", (options))
 
 """
 ### Training Data and Forecast Horizon
@@ -58,50 +58,49 @@ It is recommended to use a timeframe that includes reoccuring patterns for the m
 The more data and the longer forecast horizon are selected, the longer it will take to do the prediction.
 """
 # Layout two columns
-col1, col2 = st.columns(2) 
+col1, col2 = st.columns(2)
 
 # Two sliders to select historical data and forecast horizon
-no_days = col1.slider("Historical data in days.", min_value=1, max_value=14 )
-
-# add another slide that select the "Forecast Horizon in days" and stores it in a variable called "button_periods_to_predict"
-
-## YOUR CODE HERE ##
-
-
-no_of_hours_to_predict = button_periods_to_predict *24
+no_days = col1.slider("Historical data in days.", min_value=1, max_value=14)
+button_periods_to_predict = col2.slider(
+    "Forecast Horizon in days", min_value=1, max_value=7
+)
+no_of_hours_to_predict = button_periods_to_predict * 24
 
 # Initiliazing empty variables
 forecast = None
 fig_forecast = None
 fig_comp = None
 reg_coef = None
-forecast_ready= False
+forecast_ready = False
 reg_coef = None
+
 df = pd.DataFrame()
 
 # specifying date
 end_date_hist = datetime.now()
-start_date_hist = end_date_hist - timedelta(days = no_days)
+start_date_hist = end_date_hist - timedelta(days=no_days)
 
 # datasets to catch external data from rebase
 dataset_solar = "ods032"
 dataset_load = "ods003"
-dataset_wind =  "ods031"
+dataset_wind = "ods031"
 
-# Additonal pop-up section if multivariate forecast is selected, 
-# to choose additonal regressors 
+# Additonal pop-up section if multivariate forecast is selected,
+# to choose additonal regressors
 
 if forecast_model == "Multivariate":
-    
+
     """
     ### Choose Additional Regressors
     
     """
     add_regressors = st.multiselect(
         "Select the additional parameters for the forecast. At least, one has to be selected.",
-        options = ["Sun Radiation", "Wind Speed", "Temperature"])
+        options=["Sun Radiation", "Wind Speed", "Temperature"],
+    )
 
-    if  not add_regressors:
+    if not add_regressors:
         st.markdown("**Please select at least one additional parameter.**")
 
 calc_start = st.button("Start Calculation")
@@ -112,11 +111,11 @@ calc_start = st.button("Start Calculation")
 if forecast_model == "Univariate" and calc_start:
 
     # get and prepare data for total Load (univariate)
-    if option == "Total Load": 
-        # Catching and Formatting data for Total Load     
+    if option == "Total Load":
+        # Catching and Formatting data for Total Load
         df = get_open_data_elia_df(dataset_load, start_date_hist, end_date_hist)
-        df = df.loc[:,["datetime", "eliagridload"]]
-            
+        df = df.loc[:, ["datetime", "eliagridload"]]
+
     #  get and prepare data for wind or PV production (univariate)
     if (option == "Wind production") or option == "PV production":
 
@@ -125,43 +124,75 @@ if forecast_model == "Univariate" and calc_start:
             dataset = dataset_wind
         else:
             dataset = dataset_solar
-        # Catching and Formatting data for Wind Production    
-        df = get_open_data_elia_df(dataset, start_date_hist, end_date_hist) # 14 different departments
-        
+        # Catching and Formatting data for Wind Production
+        df = get_open_data_elia_df(
+            dataset, start_date_hist, end_date_hist
+        )  # 14 different departments
+
         df = df.groupby("datetime").sum()
-        df.reset_index(inplace = True)
-        df = df.loc[:,["datetime", "mostrecentforecast"]]
+        df.reset_index(inplace=True)
+        df = df.loc[:, ["datetime", "mostrecentforecast"]]
         df["datetime"] = pd.to_datetime(df["datetime"]).dt.tz_localize(None)
 
- 
     # Calculation of Univariate Forecast
-    forecast, fig_forecast, fig_comp= run_forecast_univariate(df, no_of_hours_to_predict)
+    forecast, fig_forecast, fig_comp = run_forecast_univariate(
+        df, no_of_hours_to_predict
+    )
     forecast_ready = True
 
 # Multivariate calculation
 
 if (forecast_model == "Multivariate") and calc_start:
-    
+
     if add_regressors:
-        solar, wind, temp = check_regressors(add_regressors) 
+        solar, wind, temp = check_regressors(add_regressors)
         lat = "50.85045"
-        long= "4.34878"
+        long = "4.34878"
 
         with st.spinner("The forecast is being calculated."):
 
-            if option == "PV production": 
-                df_merged = prepare_data_for_mv_fc(dataset_solar, start_date_hist, end_date_hist, solar, wind, temp, lat,long)
-               
-            if option == "Wind production":           
-                df_merged = prepare_data_for_mv_fc(dataset_wind, start_date_hist, end_date_hist, solar, wind, temp, lat,long)
-        
-            if option == "Total Load": 
-                df_merged = prepare_data_for_mv_fc(dataset_load, start_date_hist, end_date_hist, solar, wind, temp, lat,long)
-            
+            if option == "PV production":
+                df_merged = prepare_data_for_mv_fc(
+                    dataset_solar,
+                    start_date_hist,
+                    end_date_hist,
+                    solar,
+                    wind,
+                    temp,
+                    lat,
+                    long,
+                )
+
+            if option == "Wind production":
+                df_merged = prepare_data_for_mv_fc(
+                    dataset_wind,
+                    start_date_hist,
+                    end_date_hist,
+                    solar,
+                    wind,
+                    temp,
+                    lat,
+                    long,
+                )
+
+            if option == "Total Load":
+                df_merged = prepare_data_for_mv_fc(
+                    dataset_load,
+                    start_date_hist,
+                    end_date_hist,
+                    solar,
+                    wind,
+                    temp,
+                    lat,
+                    long,
+                )
+
             # Start of the calculation
-            forecast, fig_forecast, fig_comp, reg_coef = run_forecast_multivariate(df_merged, lat, long, no_of_hours_to_predict)
-            df = df_merged.loc[:,["ds","y"]].rename(columns= {"ds":"datetime"})
-            forecast_ready = True   
+            forecast, fig_forecast, fig_comp, reg_coef = run_forecast_multivariate(
+                df_merged, lat, long, no_of_hours_to_predict
+            )
+            df = df_merged.loc[:, ["ds", "y"]].rename(columns={"ds": "datetime"})
+            forecast_ready = True
 
     else:
         st.write("Please select at least one regressor.")
@@ -175,14 +206,14 @@ if not df.empty and option is not None:
     # Display the data from the API
     df["datetime"] = pd.to_datetime(df["datetime"])
     df = df.set_index("datetime")
-    
-    df = df.loc[start_date_hist:end_date_hist,:]
+
+    df = df.loc[start_date_hist:end_date_hist, :]
     st.line_chart(df)
-    #st.write(df)
-    df.reset_index(inplace = True)
+    # st.write(df)
+    df.reset_index(inplace=True)
 
 if forecast_ready:
-    
+
     """
     ### Forecast Results
     The following section displays the forecast results. It is divided into the forecast and a component plot.
@@ -192,17 +223,19 @@ if forecast_ready:
     """
 
     # Plot the variable "fig_forecast"
-    ## YOUR CODE HERE ##
+    st.pyplot(fig_forecast)
 
     # make a selection of the most import columns fo the "forecast" dataframe and display them in a table (and rename column "ds" to "datetime")
-    ## YOUR CODE HERE ##
+
+    print(forecast.columns)
+    df_important = forecast[["ds", "trend", "daily"]]
 
     # add a heading "Components Plot"
-    ## YOUR CODE HERE ##
+    st.write(df_important)
 
     # plot the variable fig_components plot
-    ## YOUR CODE HERE ##
-    
+    st.pyplot(fig_comp)
+
     if reg_coef is not None:
 
         """
@@ -210,7 +243,7 @@ if forecast_ready:
         
         """
         st.write(reg_coef)
-        
+
     """
     ### Download Section
     You can download the **Input Data** and the **Forecast Results** as a .csv file. 
@@ -226,19 +259,19 @@ if forecast_ready:
 
     col1, col2 = st.columns(2)
     col1.markdown(
-            download_button(
-                convert_df(df), 
-                f'input_data_{now.strftime("%d/%m/%Y_%H:%M:%S")}.csv', 
-                "Download Input Data Source"),
-                unsafe_allow_html=True
-            )
+        download_button(
+            convert_df(df),
+            f'input_data_{now.strftime("%d/%m/%Y_%H:%M:%S")}.csv',
+            "Download Input Data Source",
+        ),
+        unsafe_allow_html=True,
+    )
 
     col2.markdown(
-            download_button(
-                convert_df(forecast),
-                f'forecast_data_{now.strftime("%d/%m/%Y_%H:%M:%S")}.csv',
-                "Download Forecast Results"),
-                unsafe_allow_html=True
-            )
-        
-
+        download_button(
+            convert_df(forecast),
+            f'forecast_data_{now.strftime("%d/%m/%Y_%H:%M:%S")}.csv',
+            "Download Forecast Results",
+        ),
+        unsafe_allow_html=True,
+    )

@@ -1,4 +1,4 @@
-def check_regressors(add_regressors): 
+def check_regressors(add_regressors):
 
     if "Sun Radiation" in add_regressors:
         solar = True
@@ -12,8 +12,5 @@ def check_regressors(add_regressors):
         temp = True
     else:
         temp = False
-    print("solar, wind, temp "+ str(solar) + str(wind) + str(temp))
+    print("solar, wind, temp " + str(solar) + str(wind) + str(temp))
     return solar, wind, temp
-
-
-  

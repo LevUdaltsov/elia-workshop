@@ -1,4 +1,3 @@
-
 ## from https://gist.github.com/chad-m/6be98ed6cf1c4f17d09b7f6e5ca2978f
 
 import base64
@@ -12,7 +11,9 @@ import streamlit as st
 import pandas as pd
 
 
-def download_button(object_to_download, download_filename, button_text, pickle_it=False):
+def download_button(
+    object_to_download, download_filename, button_text, pickle_it=False
+):
     """
     Generates a link to download the given object_to_download.
     Params:
@@ -56,8 +57,8 @@ def download_button(object_to_download, download_filename, button_text, pickle_i
     except AttributeError as e:
         b64 = base64.b64encode(object_to_download).decode()
 
-    button_uuid = str(uuid.uuid4()).replace('-', '')
-    button_id = re.sub('\d+', '', button_uuid)
+    button_uuid = str(uuid.uuid4()).replace("-", "")
+    button_id = re.sub("\d+", "", button_uuid)
 
     custom_css = f""" 
         <style>
@@ -84,19 +85,23 @@ def download_button(object_to_download, download_filename, button_text, pickle_i
                 }}
         </style> """
 
-    dl_link = custom_css + f'<a download="{download_filename}" id="{button_id}" href="data:file/txt;base64,{b64}">{button_text}</a><br></br>'
+    dl_link = (
+        custom_css
+        + f'<a download="{download_filename}" id="{button_id}" href="data:file/txt;base64,{b64}">{button_text}</a><br></br>'
+    )
 
     return dl_link
 
 
-def file_selector(folder_path='.'):
+def file_selector(folder_path="."):
     filenames = os.listdir(folder_path)
-    selected_filename = st.selectbox('Select a file', filenames)
+    selected_filename = st.selectbox("Select a file", filenames)
     return os.path.join(folder_path, selected_filename)
 
 
-if __name__ == '__main__':
-    st.markdown("""
+if __name__ == "__main__":
+    st.markdown(
+        """
                 ## How to download files in Streamlit with download_button()
                 ~> Below are use cases and code examples for the `download_button()`
                 function, which returns a clickable download link given your data
@@ -107,78 +112,97 @@ if __name__ == '__main__':
                 The download_button() function is an extension of a workaround based on
                 the discussions covered in more detail at [Awesome Streamlit](http://awesome-streamlit.org/).
                 Go to Gallery -> Select the App Dropdown -> Choose "File Download Workaround"
-                for more information.""")
+                for more information."""
+    )
 
-    st.markdown('-'*17)
-
+    st.markdown("-" * 17)
 
     # ---------------------
     # Download from memory
     # ---------------------
-    if st.checkbox('Download object from memory'):
-        st.write('~> Use if you want to save some data from memory (e.g. pd.DataFrame, dict, list, str, int)')
+    if st.checkbox("Download object from memory"):
+        st.write(
+            "~> Use if you want to save some data from memory (e.g. pd.DataFrame, dict, list, str, int)"
+        )
 
         # Enter text for testing
-        s = st.selectbox('Select dtype', ['list',  # TODO: Add more
-                                          'str',
-                                          'int',
-                                          'float',
-                                          'dict',
-                                          'bool',
-                                          'pd.DataFrame'])
-        
-        filename = st.text_input('Enter output filename and ext (e.g. my-dataframe.csv, my-file.json, my-list.txt)', 'my-file.json')
+        s = st.selectbox(
+            "Select dtype",
+            [
+                "list",  # TODO: Add more
+                "str",
+                "int",
+                "float",
+                "dict",
+                "bool",
+                "pd.DataFrame",
+            ],
+        )
+
+        filename = st.text_input(
+            "Enter output filename and ext (e.g. my-dataframe.csv, my-file.json, my-list.txt)",
+            "my-file.json",
+        )
 
         # Pickle Rick
-        pickle_it = st.checkbox('Save as pickle file')
+        pickle_it = st.checkbox("Save as pickle file")
 
-        sample_df = pd.DataFrame({'x': list(range(10)), 'y': list(range(10))})
-        sample_dtypes = {'list': [1,'a', [2, 'c'], {'b': 2}],
-                         'str': 'Hello Streamlit!',
-                         'int': 17,
-                         'float': 17.0,
-                         'dict': {1: 'a', 'x': [2, 'c'], 2: {'b': 2}},
-                         'bool': True,
-                         'pd.DataFrame': sample_df}
+        sample_df = pd.DataFrame({"x": list(range(10)), "y": list(range(10))})
+        sample_dtypes = {
+            "list": [1, "a", [2, "c"], {"b": 2}],
+            "str": "Hello Streamlit!",
+            "int": 17,
+            "float": 17.0,
+            "dict": {1: "a", "x": [2, "c"], 2: {"b": 2}},
+            "bool": True,
+            "pd.DataFrame": sample_df,
+        }
 
         # Display sample data
-        st.write(f'#### Sample `{s}` to be saved to `{filename}`')
-        st.code(sample_dtypes[s], language='python')
+        st.write(f"#### Sample `{s}` to be saved to `{filename}`")
+        st.code(sample_dtypes[s], language="python")
 
         # Download sample
-        download_button_str = download_button(sample_dtypes[s], filename, f'Click here to download {filename}', pickle_it=pickle_it)
+        download_button_str = download_button(
+            sample_dtypes[s],
+            filename,
+            f"Click here to download {filename}",
+            pickle_it=pickle_it,
+        )
         st.markdown(download_button_str, unsafe_allow_html=True)
 
-        if st.checkbox('Show code example '):
+        if st.checkbox("Show code example "):
             code_text = f"""
                         s = {sample_dtypes[s]}
                         download_button_str = download_button(s, '{filename}', 'Click here to download {filename}', pickle_it={pickle_it})
                         st.markdown(download_button_str, unsafe_allow_html=True)"""
 
-            st.code(code_text, language='python')
+            st.code(code_text, language="python")
 
     # --------------------------
     # Select a file to download
     # --------------------------
-    if st.checkbox('Select a file to download'):
-        st.write('~> Use if you want to test uploading / downloading a certain file.')
+    if st.checkbox("Select a file to download"):
+        st.write("~> Use if you want to test uploading / downloading a certain file.")
 
         # Upload file for testing
-        folder_path = st.text_input('Enter directory: deafult .', '.')
+        folder_path = st.text_input("Enter directory: deafult .", ".")
         filename = file_selector(folder_path=folder_path)
 
         # Load selected file
-        with open(filename, 'rb') as f:
+        with open(filename, "rb") as f:
             s = f.read()
 
-        download_button_str = download_button(s, filename, f'Click here to download {filename}')
+        download_button_str = download_button(
+            s, filename, f"Click here to download {filename}"
+        )
         st.markdown(download_button_str, unsafe_allow_html=True)
 
-        if st.checkbox('Show code example'):
+        if st.checkbox("Show code example"):
             code_text = f"""
                         with open('{filename}', 'rb') as f:
                             s = f.read()
                         download_button_str = download_button(s, '{filename}', 'Click here to download {filename}')
                         st.markdown(download_button_str, unsafe_allow_html=True)"""
 
-            st.code(code_text, language='python')
+            st.code(code_text, language="python")
